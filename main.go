@@ -32,7 +32,7 @@ func main() {
 	http.HandleFunc("/write", writeJSON)
 	http.HandleFunc("/read", readJSON)
 
-	log.Println("crudmocker started on Port: ", port)
+	log.Println("mockstoragego started on Port: ", port)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatal("HTTP Server Failed: ", err)
