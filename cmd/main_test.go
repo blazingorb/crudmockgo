@@ -145,19 +145,19 @@ func TestWriteAndReadSuccess(t *testing.T) {
 
 	body, err := ioutil.ReadAll(reqr.Body)
 	if err != nil {
-		t.Errorf("Request Body Read Failed: ", err)
+		t.Errorf("Request Body Read Failed: %s", err)
 	}
 
 	var readData *Envelope
 	err = json.Unmarshal(body, &readData)
 	if err != nil {
-		t.Errorf("JSON deserialize failed: ", err)
+		t.Errorf("JSON deserialize failed: %s", err)
 	}
 
 	if startData.Data.Name != readData.Name {
 		t.Errorf("Response Differs. Expected %s \n Got %s", startData.Data.Name, readData.Name)
 	}
 	if startData.Data.Age != readData.Age {
-		t.Errorf("Response Differs. Expected %s \n Got %s", startData.Data.Age, readData.Age)
+		t.Errorf("Response Differs. Expected %d \n Got %d", startData.Data.Age, readData.Age)
 	}
 }
