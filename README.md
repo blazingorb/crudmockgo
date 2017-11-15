@@ -1,3 +1,5 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/blazingorb/mockstoragego)](https://goreportcard.com/report/github.com/blazingorb/mockstoragego)
+
 # Mock JSON Storage in Go
 This package is intended for rapid mocking of front-end applications that requires some persistent data.
 
