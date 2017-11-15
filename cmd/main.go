@@ -8,13 +8,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sync"
+
+	mockstorage "github.com/blazingorb/mockstoragego"
 )
 
 var (
-	mu    = sync.RWMutex{}
-	store = make(map[string]interface{})
 	port  string
+	store = mockstorage.NewMockStorage()
 )
 
 type Proto struct {
@@ -69,9 +69,7 @@ func writeJSON(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	mu.Lock()
-	store[proto.ID] = proto.Data
-	mu.Unlock()
+	store.Store(proto.ID, proto.Data)
 }
 
 func readJSON(w http.ResponseWriter, req *http.Request) {
@@ -90,10 +88,8 @@ func readJSON(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 	}
 
-	mu.RLock()
-	source, found := store[id]
-	mu.RUnlock()
-	if !found {
+	source := store.Load(id)
+	if source == nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
@@ -114,13 +110,7 @@ func listJSON(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	list := []interface{}{}
-	mu.RLock()
-	for _, v := range store {
-		list = append(list, v)
-	}
-	mu.RUnlock()
-
+	list := store.List()
 	b, err := json.Marshal(list)
 	if err != nil {
 		log.Println("Serialize Error")
@@ -128,7 +118,6 @@ func listJSON(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Println("response: ", b)
 	fmt.Fprint(w, string(b))
 }
 
@@ -139,7 +128,5 @@ func clear(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	mu.Lock()
-	store = make(map[string]interface{})
-	mu.Unlock()
+	store.Clear()
 }
