@@ -31,6 +31,8 @@ func main() {
 
 	http.HandleFunc("/write", writeJSON)
 	http.HandleFunc("/read", readJSON)
+	http.HandleFunc("/list", listJSON)
+	http.HandleFunc("/clear", clear)
 
 	log.Println("mockstoragego started on Port: ", port)
 	err := http.ListenAndServe(":"+port, nil)
@@ -70,7 +72,6 @@ func writeJSON(w http.ResponseWriter, req *http.Request) {
 	mu.Lock()
 	store[proto.ID] = proto.Data
 	mu.Unlock()
-	fmt.Println(proto.Data)
 }
 
 func readJSON(w http.ResponseWriter, req *http.Request) {
@@ -103,6 +104,42 @@ func readJSON(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("response: ", b)
 	fmt.Fprint(w, string(b))
+}
+
+func listJSON(w http.ResponseWriter, req *http.Request) {
+	log.Println("listJSON Endpoint: ", req.RemoteAddr)
+	if req.Method != "GET" {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
+	list := []interface{}{}
+	mu.RLock()
+	for _, v := range store {
+		list = append(list, v)
+	}
+	mu.RUnlock()
+
+	b, err := json.Marshal(list)
+	if err != nil {
+		log.Println("Serialize Error")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("response: ", b)
+	fmt.Fprint(w, string(b))
+}
+
+func clear(w http.ResponseWriter, req *http.Request) {
+	log.Println("clear Endpoint: ", req.RemoteAddr)
+	if req.Method != "POST" {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
+	mu.Lock()
+	store = make(map[string]interface{})
+	mu.Unlock()
 }
