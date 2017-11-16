@@ -8,13 +8,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	mockstorage "github.com/blazingorb/mockstoragego"
+	"github.com/rs/cors"
 )
 
 var (
-	port  string
-	store = mockstorage.NewMockStorage()
+	port        string
+	crossdomain string
+	store       = mockstorage.NewMockStorage()
 )
 
 type Proto struct {
@@ -24,18 +27,33 @@ type Proto struct {
 
 func main() {
 	port = os.Getenv("PORT")
+	crossdomain = os.Getenv("CORS")
 	if port == "" {
 		flag.StringVar(&port, "p", "8080", "listen port")
 		flag.Parse()
 	}
+	if crossdomain == "" {
+		flag.StringVar(&crossdomain, "c", "", "Allowed CORS Origin")
+	}
 
-	http.HandleFunc("/write", writeJSON)
-	http.HandleFunc("/read", readJSON)
-	http.HandleFunc("/list", listJSON)
-	http.HandleFunc("/clear", clear)
+	access := cors.AllowAll().Handler
+	if crossdomain != "" {
+		c := cors.Options{}
+		c.AllowedOrigins = strings.Split(crossdomain, ",")
+		c.AllowedMethods = []string{"POST", "GET", "PUT", "PATCH"}
+		c.AllowedHeaders = []string{"Origin", "Content-Type", "Authorization"} //, "Accept", "Content-Type", "hello"}
+		c.AllowCredentials = true
+		access = cors.New(c).Handler
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/write", writeJSON)
+	mux.HandleFunc("/read", readJSON)
+	mux.HandleFunc("/list", listJSON)
+	mux.HandleFunc("/clear", clear)
 
 	log.Println("mockstoragego started on Port: ", port)
-	err := http.ListenAndServe(":"+port, nil)
+	err := http.ListenAndServe(":"+port, access(mux))
 	if err != nil {
 		log.Fatal("HTTP Server Failed: ", err)
 	}
@@ -64,7 +82,7 @@ func writeJSON(w http.ResponseWriter, req *http.Request) {
 	var proto *Proto
 	err = json.Unmarshal(body, &proto)
 	if err != nil || proto.ID == "" || proto.Data == "" {
-		log.Println("Request Error")
+		log.Println("Request Error: ", string(body), proto, err)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
